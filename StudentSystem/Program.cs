@@ -1,0 +1,306 @@
+// See https://aka.ms/new-console-template for more information
+namespace StudentSystem;
+
+interface IId
+{
+    public int Id { get; set; }
+}
+
+class DoublyNode<T> where T : class, IId
+{
+    public DoublyNode<T>? Next;
+    public DoublyNode<T>? Prev;
+    private T _data;
+    public DoublyNode(T data)
+    {
+        _data = data;
+    }
+
+    public void Append(T data)
+    {
+        Next = new DoublyNode<T>(data);
+        Next.Prev = this;
+    }
+
+    public DoublyNode<T>? Prepend(T data)
+    {
+        this.Prev = new DoublyNode<T>(data);
+        this.Prev.Next = this;
+        return this.Prev;
+    }
+
+    public void Insert(T data)
+    {
+
+    }
+
+    public void Print()
+    {
+        Console.WriteLine(_data.ToString());
+    }
+
+    public bool EqId(int other) => _data.Id == other;
+
+    public void UpdateData(T data) => _data = data;
+
+    public int Id() => _data.Id;
+}
+
+class DoublyLinkedList<T> where T : class, IId
+{
+    public DoublyNode<T>? Head;
+    private int _curId;
+    private int _length;
+    public DoublyLinkedList()
+    {
+        _curId = 0;
+        _length = 0;
+    }
+
+    public void Append(T data)
+    {
+        _curId += 1;
+        _length += 1;
+        data.Id = _curId;
+        if (Head == null) Head = new DoublyNode<T>(data);
+        else
+        {
+            DoublyNode<T> curNode = Head;
+            while (curNode.Next != null) curNode = curNode.Next;
+            curNode.Append(data);
+        }
+    }
+
+    public void Prepend(T data)
+    {
+        _curId += 1;
+        _length += 1;
+        data.Id = _curId;
+        if (Head == null) Head = new DoublyNode<T>(data);
+        else Head = Head.Prepend(data);
+    }
+
+
+    public void Insert(T data, int index)
+    {
+        _curId += 1;
+        _length += 1;
+        data.Id = _curId;
+        if (Head == null) Head = new DoublyNode<T>(data);
+        else
+        {
+            if (index > _length)
+            {
+                Console.WriteLine("Selected index greater than length of list");
+                return;
+            }
+            DoublyNode<T>? curNode = Head;
+            for (int i = 0; i < index; i++) if (curNode.Next != null) curNode = curNode.Next;
+            curNode.Insert(data);
+        }
+    }
+
+    public void Print()
+    {
+        if (Head == null) Console.WriteLine("No elements in list");
+        else
+        {
+            DoublyNode<T>? curNode = Head;
+            while (curNode != null)
+            {
+                curNode.Print();
+                curNode = curNode.Next;
+            }
+        }
+    }
+
+    public DoublyNode<T>? GetId(int id)
+    {
+        if (Head != null)
+        {
+            DoublyNode<T>? curNode = Head;
+            while (curNode != null)
+            {
+                if (curNode.EqId(id)) return curNode;
+                curNode = curNode.Next;
+            }
+        }
+
+        return null;
+    }
+
+    public bool RemoveId(int id)
+    {
+        if (Head != null)
+        {
+            DoublyNode<T>? curNode = Head;
+            while (curNode != null)
+            {
+                if (curNode.EqId(id))
+                {
+                    if (curNode.Prev == null) Head = curNode.Next;
+                    else curNode.Prev.Next = curNode.Next;
+
+                    return true;
+                }
+
+                curNode = curNode.Next;
+            }
+        }
+
+        return false;
+    }
+
+    public bool UpdateNode(int id, T data)
+    {
+        if (Head != null)
+        {
+            DoublyNode<T>? curNode = Head;
+            while (curNode != null)
+            {
+                if (curNode.EqId(id))
+                {
+                    curNode.UpdateData(data);
+                    return true;
+                }
+                curNode = curNode.Next;
+            }
+        }
+
+        return false;
+    }
+}
+
+class Student : IId
+{
+    public int Id { get; set; }
+    private string _name;
+    private int _yearLevel;
+    private string _course;
+    private string _phoneNumber;
+    private string _email;
+    public Student(int id, string name, int yearLevel, string course, string phoneNumber, string email)
+    {
+        Id = id;
+        _name = name;
+        _yearLevel = yearLevel;
+        _course = course;
+        _phoneNumber = phoneNumber;
+        _email = email;
+    }
+
+    public override string ToString() => $"id = {Id}, name = {_name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}";
+}
+
+class Program
+{
+    static int convInt(string inputMsg)
+    {
+        bool dataConv = false;
+        int convData = 0;
+        while (!dataConv)
+        {
+            string? dataStr = null;
+            while (dataStr == null)
+            {
+                Console.Write(inputMsg);
+                dataStr = Console.ReadLine();
+            }
+            try
+            {
+                convData = Convert.ToInt32(dataStr);
+                dataConv = true;
+            }
+            catch { }
+        }
+        return convData;
+    }
+
+    static string inputStr(string msg)
+    {
+        string? strToRet = null;
+        while (strToRet == null)
+        {
+            Console.Write(msg);
+            strToRet = Console.ReadLine();
+        }
+        return strToRet;
+    }
+
+    static void Main()
+    {
+        DoublyLinkedList<Student> studentLL = new DoublyLinkedList<Student>();
+        string command = "";
+        Console.WriteLine(":help to get help");
+        do
+        {
+            command = inputStr("> ");
+
+            Student? data = null;
+            bool stat = false;
+            switch (command)
+            {
+                case "add":
+                    string name = inputStr("Name: ");
+                    int yearLevel = convInt("Year Level: ");
+                    string course = inputStr("Course: ");
+                    string phoneNumber = inputStr("Phone Number: ");
+                    string email = inputStr("Email: ");
+                    string befAft = "";
+                    do
+                    {
+                        befAft = inputStr("Location(before or after): ");
+                    } while (befAft != "before" && befAft != "after");
+                    data = new Student(0, name, yearLevel, course, phoneNumber, email);
+                    if (befAft == "before") studentLL.Prepend(data);
+                    else if (befAft == "after") studentLL.Append(data);
+                    break;
+                case "insert":
+                    DoublyNode<Student>? curNode = studentLL.Head;
+                    while (curNode != null)
+                    {
+                        curNode = curNode.Next;
+                    }
+                    break;
+                case "get":
+                    int idToGet = convInt("Id: ");
+                    DoublyNode<Student>? studentNode = studentLL.GetId(idToGet);
+                    if (studentNode == null) Console.WriteLine($"Unable to find student with id = {idToGet}");
+                    else studentNode.Print();
+                    break;
+                case "remove":
+                    int idToRemove = convInt("Id: ");
+                    stat = studentLL.RemoveId(idToRemove);
+                    if (stat) Console.WriteLine($"Successfully deleted student with id = {idToRemove}");
+                    else Console.WriteLine($"Unable to delete student with id = {idToRemove}");
+                    break;
+                case "update":
+                    int idToUpdate = convInt("Id: ");
+                    int newId = convInt("New Id: ");
+                    string nameToUpdate = inputStr("Name to Update: ");
+                    int yearLevelToUpdate = convInt("Year Level: ");
+                    string courseToUpdate = inputStr("Course to Update: ");
+                    string phoneNumberToUpdate = inputStr("Phone Number to Update: ");
+                    string emailToUpdate = inputStr("Email to Update: ");
+                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate, emailToUpdate);
+                    stat = studentLL.UpdateNode(idToUpdate, data);
+                    if (stat) Console.WriteLine($"Successfully updated student with id = {idToUpdate}");
+                    else Console.WriteLine($"Unable to update student with id = {idToUpdate}");
+                    break;
+                case "print":
+                    studentLL.Print();
+                    break;
+                case "help":
+                    Console.WriteLine("Help:");
+                    Console.WriteLine("Commands: add, get, remove, update, print, insert");
+                    break;
+                case "exit":
+                    break;
+                default:
+                    Console.WriteLine("Unknown command");
+                    break;
+            }
+        } while (command != "exit");
+        Console.WriteLine("Goodbye!");
+    }
+}
