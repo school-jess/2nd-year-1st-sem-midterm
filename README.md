@@ -1,3 +1,7 @@
+Jess Mathew P. Evangelista
+
+BSIT-2
+
 Student system using a linked list.
 How to use:
 Build and run the program

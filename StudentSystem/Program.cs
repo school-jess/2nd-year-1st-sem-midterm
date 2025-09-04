@@ -1,4 +1,5 @@
 // See https://aka.ms/new-console-template for more information
+
 namespace StudentSystem;
 
 interface IId
@@ -11,6 +12,7 @@ class DoublyNode<T> where T : class, IId
     public DoublyNode<T>? Next;
     public DoublyNode<T>? Prev;
     private T _data;
+
     public DoublyNode(T data)
     {
         _data = data;
@@ -31,7 +33,6 @@ class DoublyNode<T> where T : class, IId
 
     public void Insert(T data)
     {
-
     }
 
     public void Print()
@@ -51,6 +52,7 @@ class DoublyLinkedList<T> where T : class, IId
     public DoublyNode<T>? Head;
     private int _curId;
     private int _length;
+
     public DoublyLinkedList()
     {
         _curId = 0;
@@ -94,8 +96,11 @@ class DoublyLinkedList<T> where T : class, IId
                 Console.WriteLine("Selected index greater than length of list");
                 return;
             }
+
             DoublyNode<T>? curNode = Head;
-            for (int i = 0; i < index; i++) if (curNode.Next != null) curNode = curNode.Next;
+            for (int i = 0; i < index; i++)
+                if (curNode.Next != null)
+                    curNode = curNode.Next;
             curNode.Insert(data);
         }
     }
@@ -163,6 +168,7 @@ class DoublyLinkedList<T> where T : class, IId
                     curNode.UpdateData(data);
                     return true;
                 }
+
                 curNode = curNode.Next;
             }
         }
@@ -179,7 +185,10 @@ class Student : IId
     private string _course;
     private string _phoneNumber;
     private string _email;
-    public Student(int id, string name, int yearLevel, string course, string phoneNumber, string email)
+    private DateOnly _birthday;
+
+    public Student(int id, string name, int yearLevel, string course, string phoneNumber, string email,
+        DateOnly birthday)
     {
         Id = id;
         _name = name;
@@ -187,9 +196,11 @@ class Student : IId
         _course = course;
         _phoneNumber = phoneNumber;
         _email = email;
+        _birthday = birthday;
     }
 
-    public override string ToString() => $"id = {Id}, name = {_name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}";
+    public override string ToString() =>
+        $"id = {Id}, name = {_name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}, birthday = {_birthday.ToString()}";
 }
 
 class Program
@@ -206,13 +217,17 @@ class Program
                 Console.Write(inputMsg);
                 dataStr = Console.ReadLine();
             }
+
             try
             {
                 convData = Convert.ToInt32(dataStr);
                 dataConv = true;
             }
-            catch { }
+            catch
+            {
+            }
         }
+
         return convData;
     }
 
@@ -224,7 +239,27 @@ class Program
             Console.Write(msg);
             strToRet = Console.ReadLine();
         }
+
         return strToRet;
+    }
+
+    static DateOnly convDateOnly(string msg, string format)
+    {
+        bool dateOnlyConv = false;
+        DateOnly dateOnlyVar = new DateOnly();
+        while (!dateOnlyConv)
+        {
+            string dateOnlyVarStr = inputStr(msg);
+            try
+            {
+                dateOnlyVar = DateOnly.ParseExact(dateOnlyVarStr, format);
+            }
+            catch
+            {
+            }
+        }
+
+        return dateOnlyVar;
     }
 
     static void Main()
@@ -246,20 +281,43 @@ class Program
                     string course = inputStr("Course: ");
                     string phoneNumber = inputStr("Phone Number: ");
                     string email = inputStr("Email: ");
+                    DateOnly birthday = convDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
                     string befAft = "";
-                    do
-                    {
-                        befAft = inputStr("Location(before or after): ");
-                    } while (befAft != "before" && befAft != "after");
-                    data = new Student(0, name, yearLevel, course, phoneNumber, email);
+                    do befAft = inputStr("Location(before or after): ");
+                    while (befAft != "before" && befAft != "after");
+                    data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
                     if (befAft == "before") studentLL.Prepend(data);
                     else if (befAft == "after") studentLL.Append(data);
                     break;
                 case "insert":
-                    DoublyNode<Student>? curNode = studentLL.Head;
-                    while (curNode != null)
+                    string nameToInsert = inputStr("Name: ");
+                    int yearLevelToInsert = convInt("Year Level: ");
+                    string courseToInsert = inputStr("Course: ");
+                    string phoneNumberToInsert = inputStr("Phone Number: ");
+                    string emailToInsert = inputStr("Email: ");
+                    DateOnly birthdayToINsert = convDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
+                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert, emailToInsert, birthdayToINsert);
+                    if (studentLL.Head == null) studentLL.Insert(data, 0);
+                    else
                     {
-                        curNode = curNode.Next;
+                        DoublyNode<Student> curNode = studentLL.Head;
+                        int i = 0;
+                        while (true)
+                        {
+                            curNode.Print();
+                            ConsoleKey key = ConsoleKey.A;
+                            while (key != ConsoleKey.Y && key != ConsoleKey.N)
+                            {
+                                Console.Write("Insert here?(y or n):");
+                                key = Console.ReadKey().Key;
+                                Console.WriteLine();
+                                if (key == ConsoleKey.N) i++;
+                                if (key == ConsoleKey.Y) break;
+                            }
+                            if (curNode.Next == null) break;
+                            curNode = curNode.Next;
+                        }
+                        studentLL.Insert(data, i);
                     }
                     break;
                 case "get":
@@ -282,7 +340,9 @@ class Program
                     string courseToUpdate = inputStr("Course to Update: ");
                     string phoneNumberToUpdate = inputStr("Phone Number to Update: ");
                     string emailToUpdate = inputStr("Email to Update: ");
-                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate, emailToUpdate);
+                    DateOnly birthdayToUpdate = convDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
+                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
+                        emailToUpdate, birthdayToUpdate);
                     stat = studentLL.UpdateNode(idToUpdate, data);
                     if (stat) Console.WriteLine($"Successfully updated student with id = {idToUpdate}");
                     else Console.WriteLine($"Unable to update student with id = {idToUpdate}");
@@ -292,7 +352,7 @@ class Program
                     break;
                 case "help":
                     Console.WriteLine("Help:");
-                    Console.WriteLine("Commands: add, get, remove, update, print, insert");
+                    Console.WriteLine("Commands: add, get, remove, update, print, insert, exit");
                     break;
                 case "exit":
                     break;
@@ -301,6 +361,7 @@ class Program
                     break;
             }
         } while (command != "exit");
+
         Console.WriteLine("Goodbye!");
     }
 }
