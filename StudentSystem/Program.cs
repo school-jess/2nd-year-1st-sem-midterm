@@ -31,8 +31,16 @@ class DoublyNode<T> where T : class, IId
         return this.Prev;
     }
 
-    public void Insert(T data)
+    public DoublyNode<T> Insert(T data)
     {
+        DoublyNode<T> newNode = new DoublyNode<T>(data);
+        if (this.Prev != null)
+        {
+            this.Prev.Next = newNode;
+        }
+        this.Prev = newNode;
+        newNode.Next = this;
+        return newNode;
     }
 
     public void Print()
@@ -101,7 +109,12 @@ class DoublyLinkedList<T> where T : class, IId
             for (int i = 0; i < index; i++)
                 if (curNode.Next != null)
                     curNode = curNode.Next;
-            curNode.Insert(data);
+            if (curNode.Prev == null)
+            {
+                DoublyNode<T> newHead = curNode.Insert(data);
+                Head = newHead;
+            }
+            else curNode.Insert(data);
         }
     }
 
@@ -253,6 +266,7 @@ class Program
             try
             {
                 dateOnlyVar = DateOnly.ParseExact(dateOnlyVarStr, format);
+                dateOnlyConv = true;
             }
             catch
             {
