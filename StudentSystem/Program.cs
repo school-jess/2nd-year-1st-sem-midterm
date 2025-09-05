@@ -5,6 +5,7 @@ namespace StudentSystem;
 interface IId
 {
     public int Id { get; set; }
+    public string Name { get; set; }
 }
 
 class DoublyNode<T> where T : class, IId
@@ -53,6 +54,8 @@ class DoublyNode<T> where T : class, IId
     public void UpdateData(T data) => _data = data;
 
     public int Id() => _data.Id;
+
+    public bool EqName(string other) => _data.Name == other;
 }
 
 class DoublyLinkedList<T> where T : class, IId
@@ -188,12 +191,27 @@ class DoublyLinkedList<T> where T : class, IId
 
         return false;
     }
+
+    public DoublyNode<T>? GetName(string name)
+    {
+        if (Head != null)
+        {
+            DoublyNode<T>? curNode = Head;
+            while (curNode != null)
+            {
+                if (curNode.EqName(name)) return curNode;
+                curNode = curNode.Next;
+            }
+        }
+
+        return null;
+    }
 }
 
 class Student : IId
 {
     public int Id { get; set; }
-    private string _name;
+    public string Name { get; set; }
     private int _yearLevel;
     private string _course;
     private string _phoneNumber;
@@ -204,7 +222,7 @@ class Student : IId
         DateOnly birthday)
     {
         Id = id;
-        _name = name;
+        Name = name;
         _yearLevel = yearLevel;
         _course = course;
         _phoneNumber = phoneNumber;
@@ -213,7 +231,7 @@ class Student : IId
     }
 
     public override string ToString() =>
-        $"id = {Id}, name = {_name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}, birthday = {_birthday.ToString()}";
+        $"id = {Id}, name = {Name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}, birthday = {_birthday.ToString()}";
 }
 
 class Program
@@ -310,7 +328,8 @@ class Program
                     string phoneNumberToInsert = inputStr("Phone Number: ");
                     string emailToInsert = inputStr("Email: ");
                     DateOnly birthdayToINsert = convDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert, emailToInsert, birthdayToINsert);
+                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert,
+                        emailToInsert, birthdayToINsert);
                     if (studentLL.Head == null) studentLL.Insert(data, 0);
                     else
                     {
@@ -328,17 +347,33 @@ class Program
                                 if (key == ConsoleKey.N) i++;
                                 if (key == ConsoleKey.Y) break;
                             }
+
                             if (curNode.Next == null) break;
                             curNode = curNode.Next;
                         }
+
                         studentLL.Insert(data, i);
                     }
+
                     break;
                 case "get":
-                    int idToGet = convInt("Id: ");
-                    DoublyNode<Student>? studentNode = studentLL.GetId(idToGet);
-                    if (studentNode == null) Console.WriteLine($"Unable to find student with id = {idToGet}");
-                    else studentNode.Print();
+                    string idName = "";
+                    do idName = inputStr("Location(before or after): ");
+                    while (idName != "id" && idName != "name");
+                    if (idName == "id")
+                    {
+                        int idToGet = convInt("Id: ");
+                        DoublyNode<Student>? studentNode = studentLL.GetId(idToGet);
+                        if (studentNode == null) Console.WriteLine($"Unable to find student with id = {idToGet}");
+                        else studentNode.Print();
+                    }
+                    else
+                    {
+                        string nameToGet = inputStr("Name: ");
+                        DoublyNode<Student>? studentNode = studentLL.GetName(nameToGet);
+                        if (studentNode == null) Console.WriteLine($"Unable to find student with name = {nameToGet}");
+                        else studentNode.Print();
+                    }
                     break;
                 case "remove":
                     int idToRemove = convInt("Id: ");
