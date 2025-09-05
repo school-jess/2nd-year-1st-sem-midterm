@@ -1,14 +1,307 @@
 // See https://aka.ms/new-console-template for more information
+using Microsoft.Extensions.DependencyInjection;
 
 namespace StudentSystem;
 
-interface IId
+public interface IConsoleService
+{
+    string ReadLine();
+    void WriteLine(string message);
+    void Write(string message);
+    ConsoleKeyInfo ReadKey();
+}
+
+public class ConsoleService : IConsoleService
+{
+    public string ReadLine() => Console.ReadLine() ?? string.Empty;
+    public void WriteLine(string message) => Console.WriteLine(message);
+    public void Write(string message) => Console.Write(message);
+    public ConsoleKeyInfo ReadKey() => Console.ReadKey();
+}
+
+public interface IStudentRepository
+{
+
+    void Append(Student student);
+    void Prepend(Student student);
+    void Insert(Student student, int index);
+    void Print();
+    DoublyNode<Student>? GetById(int id);
+    bool RemoveById(int id);
+    bool UpdateNode(int id, Student student);
+    DoublyNode<Student>? GetByName(string name);
+}
+
+public class StudentRepository : IStudentRepository
+{
+    private readonly DoublyLinkedList<Student> _studentList;
+
+    public StudentRepository()
+    {
+        _studentList = new DoublyLinkedList<Student>();
+    }
+
+    public void Append(Student student) => _studentList.Append(student);
+    public void Prepend(Student student) => _studentList.Prepend(student);
+    public void Insert(Student student, int index) => _studentList.Insert(student, index);
+    public void Print() => _studentList.Print();
+    public DoublyNode<Student>? GetById(int id) => _studentList.GetId(id);
+    public bool RemoveById(int id) => _studentList.RemoveId(id);
+    public bool UpdateNode(int id, Student student) => _studentList.UpdateNode(id, student);
+    public DoublyNode<Student>? GetByName(string name) => _studentList.GetName(name);
+}
+
+public interface IInputService
+{
+    int ConvertToInt(string inputMsg);
+    string InputString(string msg);
+    DateOnly ConvertToDateOnly(string msg, string format);
+}
+
+public class InputService : IInputService
+{
+    private readonly IConsoleService _consoleService;
+
+    public InputService(IConsoleService consoleService)
+    {
+        _consoleService = consoleService;
+    }
+
+    public int ConvertToInt(string inputMsg)
+    {
+        bool dataConv = false;
+        int convData = 0;
+        while (!dataConv)
+        {
+            string? dataStr = null;
+            while (dataStr == null || dataStr.Trim() == "")
+            {
+                _consoleService.Write(inputMsg);
+                dataStr = _consoleService.ReadLine();
+            }
+
+            try
+            {
+                convData = Convert.ToInt32(dataStr);
+                dataConv = true;
+            }
+            catch
+            {
+                _consoleService.WriteLine("Invalid integer format. Please try again.");
+            }
+        }
+
+        return convData;
+    }
+
+    public string InputString(string msg)
+    {
+        string? strToRet = null;
+        while (strToRet == null || strToRet.Trim() == "")
+        {
+            _consoleService.Write(msg);
+            strToRet = _consoleService.ReadLine();
+        }
+
+        return strToRet;
+    }
+
+    public DateOnly ConvertToDateOnly(string msg, string format)
+    {
+        bool dateOnlyConv = false;
+        DateOnly dateOnlyVar = new DateOnly();
+        while (!dateOnlyConv)
+        {
+            string dateOnlyVarStr = InputString(msg);
+            try
+            {
+                dateOnlyVar = DateOnly.ParseExact(dateOnlyVarStr, format);
+                dateOnlyConv = true;
+            }
+            catch
+            {
+                _consoleService.WriteLine($"Invalid date format. Please use {format} format.");
+            }
+        }
+
+        return dateOnlyVar;
+    }
+}
+
+public interface ICommandProcessor
+{
+    void ProcessCommands();
+}
+
+public class CommandProcessor : ICommandProcessor
+{
+    private readonly IConsoleService _consoleService;
+    private readonly IStudentRepository _studentRepository;
+    private readonly IInputService _inputService;
+
+    public CommandProcessor(
+        IConsoleService consoleService,
+        IStudentRepository studentRepository,
+        IInputService inputService)
+    {
+        _consoleService = consoleService;
+        _studentRepository = studentRepository;
+        _inputService = inputService;
+    }
+
+    public void ProcessCommands()
+    {
+        _consoleService.WriteLine(":help to get help");
+        string command;
+
+        do
+        {
+            _consoleService.Write("> ");
+            command = _consoleService.ReadLine() ?? string.Empty;
+
+            Student? data = null;
+            bool stat = false;
+            switch (command.ToLower())
+            {
+                case "add":
+                    string name = _inputService.InputString("Name: ");
+                    int yearLevel = _inputService.ConvertToInt("Year Level: ");
+                    string course = _inputService.InputString("Course: ");
+                    string phoneNumber = _inputService.InputString("Phone Number: ");
+                    string email = _inputService.InputString("Email: ");
+                    DateOnly birthday = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
+                    string befAft;
+                    do
+                    {
+                        befAft = _inputService.InputString("Location(before or after): ").ToLower();
+                    } while (befAft != "before" && befAft != "after");
+
+                    data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
+                    if (befAft == "before")
+                        _studentRepository.Prepend(data);
+                    else
+                        _studentRepository.Append(data);
+                    break;
+
+                case "insert":
+                    string nameToInsert = _inputService.InputString("Name: ");
+                    int yearLevelToInsert = _inputService.ConvertToInt("Year Level: ");
+                    string courseToInsert = _inputService.InputString("Course: ");
+                    string phoneNumberToInsert = _inputService.InputString("Phone Number: ");
+                    string emailToInsert = _inputService.InputString("Email: ");
+                    DateOnly birthdayToInsert = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
+                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert,
+                        emailToInsert, birthdayToInsert);
+
+                    if (_studentRepository.GetById(0) == null)
+                        _studentRepository.Insert(data, 0);
+                    else
+                    {
+                        var curNode = _studentRepository.GetById(1);
+                        int i = 0;
+                        while (curNode != null)
+                        {
+                            curNode.Print();
+                            ConsoleKey key;
+                            do
+                            {
+                                _consoleService.Write("Insert here?(y or n):");
+                                key = _consoleService.ReadKey().Key;
+                                _consoleService.WriteLine("");
+                            } while (key != ConsoleKey.Y && key != ConsoleKey.N);
+
+                            if (key == ConsoleKey.Y) break;
+                            i++;
+                            curNode = curNode.Next;
+                        }
+
+                        _studentRepository.Insert(data, i);
+                    }
+                    break;
+
+                case "get":
+                    string idName;
+                    do
+                        idName = _inputService.InputString("Search by (id or name): ").ToLower();
+                    while (idName != "id" && idName != "name");
+
+                    if (idName == "id")
+                    {
+                        int idToGet = _inputService.ConvertToInt("Id: ");
+                        var studentNode = _studentRepository.GetById(idToGet);
+                        if (studentNode == null)
+                            _consoleService.WriteLine($"Unable to find student with id = {idToGet}");
+                        else
+                            studentNode.Print();
+                    }
+                    else
+                    {
+                        string nameToGet = _inputService.InputString("Name: ");
+                        var studentNode = _studentRepository.GetByName(nameToGet);
+                        if (studentNode == null)
+                            _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
+                        else
+                            studentNode.Print();
+                    }
+                    break;
+
+                case "remove":
+                    int idToRemove = _inputService.ConvertToInt("Id: ");
+                    stat = _studentRepository.RemoveById(idToRemove);
+                    if (stat)
+                        _consoleService.WriteLine($"Successfully deleted student with id = {idToRemove}");
+                    else
+                        _consoleService.WriteLine($"Unable to delete student with id = {idToRemove}");
+                    break;
+
+                case "update":
+                    int idToUpdate = _inputService.ConvertToInt("Id: ");
+                    int newId = _inputService.ConvertToInt("New Id: ");
+                    string nameToUpdate = _inputService.InputString("Name to Update: ");
+                    int yearLevelToUpdate = _inputService.ConvertToInt("Year Level: ");
+                    string courseToUpdate = _inputService.InputString("Course to Update: ");
+                    string phoneNumberToUpdate = _inputService.InputString("Phone Number to Update: ");
+                    string emailToUpdate = _inputService.InputString("Email to Update: ");
+                    DateOnly birthdayToUpdate = _inputService.ConvertToDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
+
+                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
+                        emailToUpdate, birthdayToUpdate);
+
+                    stat = _studentRepository.UpdateNode(idToUpdate, data);
+                    if (stat)
+                        _consoleService.WriteLine($"Successfully updated student with id = {idToUpdate}");
+                    else
+                        _consoleService.WriteLine($"Unable to update student with id = {idToUpdate}");
+                    break;
+
+                case "print":
+                    _studentRepository.Print();
+                    break;
+
+                case "help":
+                    _consoleService.WriteLine("Help:");
+                    _consoleService.WriteLine("Commands: add, get, remove, update, print, insert, exit");
+                    break;
+
+                case "exit":
+                    break;
+
+                default:
+                    if (!string.IsNullOrWhiteSpace(command))
+                        _consoleService.WriteLine("Unknown command");
+                    break;
+            }
+        } while (command.ToLower() != "exit");
+    }
+}
+
+public interface IId
 {
     public int Id { get; set; }
     public string Name { get; set; }
 }
 
-class DoublyNode<T> where T : class, IId
+public class DoublyNode<T> where T : class, IId
 {
     public DoublyNode<T>? Next;
     public DoublyNode<T>? Prev;
@@ -208,7 +501,7 @@ class DoublyLinkedList<T> where T : class, IId
     }
 }
 
-class Student : IId
+public class Student : IId
 {
     public int Id { get; set; }
     public string Name { get; set; }
@@ -234,183 +527,20 @@ class Student : IId
         $"id = {Id}, name = {Name}, year level = {_yearLevel}, course = {_course}, phone number = {_phoneNumber}, email = {_email}, birthday = {_birthday.ToString()}";
 }
 
-class Program
+static class Program
 {
-    static int convInt(string inputMsg)
-    {
-        bool dataConv = false;
-        int convData = 0;
-        while (!dataConv)
-        {
-            string? dataStr = null;
-            while (dataStr == null)
-            {
-                Console.Write(inputMsg);
-                dataStr = Console.ReadLine();
-            }
-
-            try
-            {
-                convData = Convert.ToInt32(dataStr);
-                dataConv = true;
-            }
-            catch
-            {
-            }
-        }
-
-        return convData;
-    }
-
-    static string inputStr(string msg)
-    {
-        string? strToRet = null;
-        while (strToRet == null)
-        {
-            Console.Write(msg);
-            strToRet = Console.ReadLine();
-        }
-
-        return strToRet;
-    }
-
-    static DateOnly convDateOnly(string msg, string format)
-    {
-        bool dateOnlyConv = false;
-        DateOnly dateOnlyVar = new DateOnly();
-        while (!dateOnlyConv)
-        {
-            string dateOnlyVarStr = inputStr(msg);
-            try
-            {
-                dateOnlyVar = DateOnly.ParseExact(dateOnlyVarStr, format);
-                dateOnlyConv = true;
-            }
-            catch
-            {
-            }
-        }
-
-        return dateOnlyVar;
-    }
-
     static void Main()
     {
-        DoublyLinkedList<Student> studentLL = new DoublyLinkedList<Student>();
-        string command = "";
-        Console.WriteLine(":help to get help");
-        do
-        {
-            command = inputStr("> ");
+        var services = new ServiceCollection();
 
-            Student? data = null;
-            bool stat = false;
-            switch (command)
-            {
-                case "add":
-                    string name = inputStr("Name: ");
-                    int yearLevel = convInt("Year Level: ");
-                    string course = inputStr("Course: ");
-                    string phoneNumber = inputStr("Phone Number: ");
-                    string email = inputStr("Email: ");
-                    DateOnly birthday = convDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    string befAft = "";
-                    do befAft = inputStr("Location(before or after): ");
-                    while (befAft != "before" && befAft != "after");
-                    data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
-                    if (befAft == "before") studentLL.Prepend(data);
-                    else if (befAft == "after") studentLL.Append(data);
-                    break;
-                case "insert":
-                    string nameToInsert = inputStr("Name: ");
-                    int yearLevelToInsert = convInt("Year Level: ");
-                    string courseToInsert = inputStr("Course: ");
-                    string phoneNumberToInsert = inputStr("Phone Number: ");
-                    string emailToInsert = inputStr("Email: ");
-                    DateOnly birthdayToINsert = convDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert,
-                        emailToInsert, birthdayToINsert);
-                    if (studentLL.Head == null) studentLL.Insert(data, 0);
-                    else
-                    {
-                        DoublyNode<Student> curNode = studentLL.Head;
-                        int i = 0;
-                        while (true)
-                        {
-                            curNode.Print();
-                            ConsoleKey key = ConsoleKey.A;
-                            while (key != ConsoleKey.Y && key != ConsoleKey.N)
-                            {
-                                Console.Write("Insert here?(y or n):");
-                                key = Console.ReadKey().Key;
-                                Console.WriteLine();
-                                if (key == ConsoleKey.N) i++;
-                                if (key == ConsoleKey.Y) break;
-                            }
+        services.AddSingleton<IConsoleService, ConsoleService>();
+        services.AddSingleton<IStudentRepository, StudentRepository>();
+        services.AddSingleton<IInputService, InputService>();
+        services.AddTransient<ICommandProcessor, CommandProcessor>();
 
-                            if (curNode.Next == null) break;
-                            curNode = curNode.Next;
-                        }
+        using var serviceProvider = services.BuildServiceProvider();
 
-                        studentLL.Insert(data, i);
-                    }
-
-                    break;
-                case "get":
-                    string idName = "";
-                    do idName = inputStr("Location(before or after): ");
-                    while (idName != "id" && idName != "name");
-                    if (idName == "id")
-                    {
-                        int idToGet = convInt("Id: ");
-                        DoublyNode<Student>? studentNode = studentLL.GetId(idToGet);
-                        if (studentNode == null) Console.WriteLine($"Unable to find student with id = {idToGet}");
-                        else studentNode.Print();
-                    }
-                    else
-                    {
-                        string nameToGet = inputStr("Name: ");
-                        DoublyNode<Student>? studentNode = studentLL.GetName(nameToGet);
-                        if (studentNode == null) Console.WriteLine($"Unable to find student with name = {nameToGet}");
-                        else studentNode.Print();
-                    }
-                    break;
-                case "remove":
-                    int idToRemove = convInt("Id: ");
-                    stat = studentLL.RemoveId(idToRemove);
-                    if (stat) Console.WriteLine($"Successfully deleted student with id = {idToRemove}");
-                    else Console.WriteLine($"Unable to delete student with id = {idToRemove}");
-                    break;
-                case "update":
-                    int idToUpdate = convInt("Id: ");
-                    int newId = convInt("New Id: ");
-                    string nameToUpdate = inputStr("Name to Update: ");
-                    int yearLevelToUpdate = convInt("Year Level: ");
-                    string courseToUpdate = inputStr("Course to Update: ");
-                    string phoneNumberToUpdate = inputStr("Phone Number to Update: ");
-                    string emailToUpdate = inputStr("Email to Update: ");
-                    DateOnly birthdayToUpdate = convDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
-                        emailToUpdate, birthdayToUpdate);
-                    stat = studentLL.UpdateNode(idToUpdate, data);
-                    if (stat) Console.WriteLine($"Successfully updated student with id = {idToUpdate}");
-                    else Console.WriteLine($"Unable to update student with id = {idToUpdate}");
-                    break;
-                case "print":
-                    studentLL.Print();
-                    break;
-                case "help":
-                    Console.WriteLine("Help:");
-                    Console.WriteLine("Commands: add, get, remove, update, print, insert, exit");
-                    break;
-                case "exit":
-                    break;
-                default:
-                    Console.WriteLine("Unknown command");
-                    break;
-            }
-        } while (command != "exit");
-
-        Console.WriteLine("Goodbye!");
+        var commandProcessor = serviceProvider.GetRequiredService<ICommandProcessor>();
+        commandProcessor.ProcessCommands();
     }
 }
