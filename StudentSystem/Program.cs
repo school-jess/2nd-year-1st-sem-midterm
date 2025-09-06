@@ -1,4 +1,5 @@
 // See https://aka.ms/new-console-template for more information
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace StudentSystem;
@@ -21,7 +22,6 @@ public class ConsoleService : IConsoleService
 
 public interface IStudentRepository
 {
-
     void Append(Student student);
     void Prepend(Student student);
     void Insert(Student student, int index);
@@ -30,6 +30,7 @@ public interface IStudentRepository
     bool RemoveById(int id);
     bool UpdateNode(int id, Student student);
     DoublyNode<Student>? GetByName(string name);
+    bool IsEmpty();
 }
 
 public class StudentRepository : IStudentRepository
@@ -49,6 +50,7 @@ public class StudentRepository : IStudentRepository
     public bool RemoveById(int id) => _studentList.RemoveId(id);
     public bool UpdateNode(int id, Student student) => _studentList.UpdateNode(id, student);
     public DoublyNode<Student>? GetByName(string name) => _studentList.GetName(name);
+    public bool IsEmpty() => _studentList.Len() == 0;
 }
 
 public interface IInputService
@@ -193,7 +195,7 @@ public class CommandProcessor : ICommandProcessor
                     data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert,
                         emailToInsert, birthdayToInsert);
 
-                    if (_studentRepository.GetById(0) == null)
+                    if (_studentRepository.IsEmpty())
                         _studentRepository.Insert(data, 0);
                     else
                     {
@@ -217,6 +219,7 @@ public class CommandProcessor : ICommandProcessor
 
                         _studentRepository.Insert(data, i);
                     }
+
                     break;
 
                 case "get":
@@ -243,6 +246,7 @@ public class CommandProcessor : ICommandProcessor
                         else
                             studentNode.Print();
                     }
+
                     break;
 
                 case "remove":
@@ -262,7 +266,8 @@ public class CommandProcessor : ICommandProcessor
                     string courseToUpdate = _inputService.InputString("Course to Update: ");
                     string phoneNumberToUpdate = _inputService.InputString("Phone Number to Update: ");
                     string emailToUpdate = _inputService.InputString("Email to Update: ");
-                    DateOnly birthdayToUpdate = _inputService.ConvertToDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
+                    DateOnly birthdayToUpdate =
+                        _inputService.ConvertToDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
 
                     data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
                         emailToUpdate, birthdayToUpdate);
@@ -332,6 +337,7 @@ public class DoublyNode<T> where T : class, IId
         {
             this.Prev.Next = newNode;
         }
+
         this.Prev = newNode;
         newNode.Next = this;
         return newNode;
@@ -499,6 +505,8 @@ class DoublyLinkedList<T> where T : class, IId
 
         return null;
     }
+
+    public int Len() => _length;
 }
 
 public class Student : IId
