@@ -29,7 +29,7 @@ public interface IStudentRepository
     DoublyNode<Student>? GetById(int id);
     bool RemoveById(int id);
     bool UpdateNode(int id, Student student);
-    DoublyNode<Student>? GetByName(string name);
+    List<DoublyNode<Student>> GetByName(string name);
     DoublyNode<Student>? GetHead();
 }
 
@@ -49,7 +49,7 @@ public class StudentRepository : IStudentRepository
     public DoublyNode<Student>? GetById(int id) => _studentList.GetId(id);
     public bool RemoveById(int id) => _studentList.RemoveId(id);
     public bool UpdateNode(int id, Student student) => _studentList.UpdateNode(id, student);
-    public DoublyNode<Student>? GetByName(string name) => _studentList.GetName(name);
+    public List<DoublyNode<Student>> GetByName(string name) => _studentList.GetName(name);
     public DoublyNode<Student>? GetHead() => _studentList.Head;
 }
 
@@ -200,13 +200,13 @@ public class CommandProcessor : ICommandProcessor
                                     _consoleService.Write("Insert here?(y or n): ");
                                     key = _consoleService.ReadKey().Key;
                                 } while (key != ConsoleKey.Y && key != ConsoleKey.N);
+                                _consoleService.WriteLine("");
 
                                 if (key == ConsoleKey.Y) break;
                                 i++;
                                 curNode = curNode.Next;
                             }
 
-                            Console.WriteLine(i);
                             _studentRepository.Insert(data, i);
                         }
                     }
@@ -230,9 +230,9 @@ public class CommandProcessor : ICommandProcessor
                     else
                     {
                         string nameToGet = _inputService.InputString("Name: ");
-                        var studentNode = _studentRepository.GetByName(nameToGet);
-                        if (studentNode == null) _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
-                        else studentNode.Print();
+                        var studentNodes = _studentRepository.GetByName(nameToGet);
+                        if (studentNodes.Count() == 0) _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
+                        else foreach (var studentNode in studentNodes) studentNode.Print();
                     }
 
                     break;
@@ -318,7 +318,7 @@ public class DoublyNode<T> where T : class, IId
         return this.Prev;
     }
 
-    public DoublyNode<T> Insert(T data)
+    public void Insert(T data)
     {
         DoublyNode<T> newNode = new DoublyNode<T>(data);
         if (this.Prev != null)
@@ -328,7 +328,6 @@ public class DoublyNode<T> where T : class, IId
 
         this.Prev = newNode;
         newNode.Next = this;
-        return newNode;
     }
 
     public void Print()
@@ -344,7 +343,13 @@ public class DoublyNode<T> where T : class, IId
 
     public bool Contains(string name)
     {
-        return true;
+        string[] nameParts = _data.Name.Split();
+        bool res = false;
+        foreach (var namePart in nameParts)
+        {
+            if (namePart.ToLower().Trim() == name.ToLower().Trim()) res = true;
+        }
+        return res;
     }
 }
 
@@ -402,11 +407,9 @@ class DoublyLinkedList<T> where T : class, IId
             for (int i = 0; i < index; i++)
                 if (curNode.Next != null)
                     curNode = curNode.Next;
-            if (curNode.Prev == null)
-            {
-                DoublyNode<T> newHead = curNode.Insert(data);
-                Head = newHead;
-            }
+            Console.WriteLine();
+            if (curNode.Prev == null && index == 0) Head = curNode.Prepend(data);
+            else if (curNode.Next == null && index == _length - 1) curNode.Append(data);
             else curNode.Insert(data);
         }
     }
@@ -492,19 +495,23 @@ class DoublyLinkedList<T> where T : class, IId
         return false;
     }
 
-    public DoublyNode<T>? GetName(string name)
+    public List<DoublyNode<T>> GetName(string name)
     {
+        List<DoublyNode<T>> nodes = new List<DoublyNode<T>>();
         if (Head != null)
         {
             DoublyNode<T>? curNode = Head;
             while (curNode != null)
             {
-                if (curNode.Contains(name)) return curNode;
+                if (curNode.Contains(name))
+                {
+                    nodes = nodes.Append(curNode).ToList();
+                }
                 curNode = curNode.Next;
             }
         }
 
-        return null;
+        return nodes;
     }
 
     public int Len() => _length;
