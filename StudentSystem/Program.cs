@@ -30,7 +30,7 @@ public interface IStudentRepository
     bool RemoveById(int id);
     bool UpdateNode(int id, Student student);
     DoublyNode<Student>? GetByName(string name);
-    bool IsEmpty();
+    DoublyNode<Student>? GetHead();
 }
 
 public class StudentRepository : IStudentRepository
@@ -50,7 +50,7 @@ public class StudentRepository : IStudentRepository
     public bool RemoveById(int id) => _studentList.RemoveId(id);
     public bool UpdateNode(int id, Student student) => _studentList.UpdateNode(id, student);
     public DoublyNode<Student>? GetByName(string name) => _studentList.GetName(name);
-    public bool IsEmpty() => _studentList.Len() == 0;
+    public DoublyNode<Student>? GetHead() => _studentList.Head;
 }
 
 public interface IInputService
@@ -172,56 +172,46 @@ public class CommandProcessor : ICommandProcessor
                     string phoneNumber = _inputService.InputString("Phone Number: ");
                     string email = _inputService.InputString("Email: ");
                     DateOnly birthday = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    string befAft;
+                    string location;
                     do
                     {
-                        befAft = _inputService.InputString("Location(before or after): ").ToLower();
-                    } while (befAft != "before" && befAft != "after");
+                        location = _inputService.InputString("Location(before or after or specific): ").ToLower();
+                    } while (location != "before" && location != "after" && location != "specific");
 
                     data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
-                    if (befAft == "before")
+                    if (location == "before")
                         _studentRepository.Prepend(data);
-                    else
+                    else if (location == "after")
                         _studentRepository.Append(data);
-                    break;
-
-                case "insert":
-                    string nameToInsert = _inputService.InputString("Name: ");
-                    int yearLevelToInsert = _inputService.ConvertToInt("Year Level: ");
-                    string courseToInsert = _inputService.InputString("Course: ");
-                    string phoneNumberToInsert = _inputService.InputString("Phone Number: ");
-                    string emailToInsert = _inputService.InputString("Email: ");
-                    DateOnly birthdayToInsert = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    data = new Student(0, nameToInsert, yearLevelToInsert, courseToInsert, phoneNumberToInsert,
-                        emailToInsert, birthdayToInsert);
-
-                    if (_studentRepository.IsEmpty())
-                        _studentRepository.Insert(data, 0);
                     else
                     {
-                        var curNode = _studentRepository.GetById(1);
-                        int i = 0;
-                        while (curNode != null)
+                        if (_studentRepository.GetHead() == null)
+                            _studentRepository.Insert(data, 0);
+                        else
                         {
-                            curNode.Print();
-                            ConsoleKey key;
-                            do
+                            var curNode = _studentRepository.GetHead();
+                            int i = 0;
+                            while (curNode != null)
                             {
-                                _consoleService.Write("Insert here?(y or n):");
-                                key = _consoleService.ReadKey().Key;
-                                _consoleService.WriteLine("");
-                            } while (key != ConsoleKey.Y && key != ConsoleKey.N);
+                                curNode.Print();
+                                ConsoleKey key;
+                                do
+                                {
+                                    _consoleService.Write("Insert here?(y or n): ");
+                                    key = _consoleService.ReadKey().Key;
+                                } while (key != ConsoleKey.Y && key != ConsoleKey.N);
 
-                            if (key == ConsoleKey.Y) break;
-                            i++;
-                            curNode = curNode.Next;
+                                if (key == ConsoleKey.Y) break;
+                                i++;
+                                curNode = curNode.Next;
+                            }
+
+                            Console.WriteLine(i);
+                            _studentRepository.Insert(data, i);
                         }
-
-                        _studentRepository.Insert(data, i);
                     }
 
                     break;
-
                 case "get":
                     string idName;
                     do
@@ -241,10 +231,8 @@ public class CommandProcessor : ICommandProcessor
                     {
                         string nameToGet = _inputService.InputString("Name: ");
                         var studentNode = _studentRepository.GetByName(nameToGet);
-                        if (studentNode == null)
-                            _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
-                        else
-                            studentNode.Print();
+                        if (studentNode == null) _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
+                        else studentNode.Print();
                     }
 
                     break;
@@ -285,7 +273,7 @@ public class CommandProcessor : ICommandProcessor
 
                 case "help":
                     _consoleService.WriteLine("Help:");
-                    _consoleService.WriteLine("Commands: add, get, remove, update, print, insert, exit");
+                    _consoleService.WriteLine("Commands: add, get, remove, update, print, exit");
                     break;
 
                 case "exit":
@@ -354,7 +342,10 @@ public class DoublyNode<T> where T : class, IId
 
     public int Id() => _data.Id;
 
-    public bool EqName(string other) => _data.Name == other;
+    public bool Contains(string name)
+    {
+        return true;
+    }
 }
 
 class DoublyLinkedList<T> where T : class, IId
@@ -429,6 +420,16 @@ class DoublyLinkedList<T> where T : class, IId
             while (curNode != null)
             {
                 curNode.Print();
+
+                ConsoleKey key;
+                do
+                {
+                    Console.Write("Continue? (y or n): ");
+                    key = Console.ReadKey().Key;
+                    Console.WriteLine();
+                } while (key != ConsoleKey.Y && key != ConsoleKey.N);
+                if (key == ConsoleKey.N) break;
+
                 curNode = curNode.Next;
             }
         }
@@ -498,7 +499,7 @@ class DoublyLinkedList<T> where T : class, IId
             DoublyNode<T>? curNode = Head;
             while (curNode != null)
             {
-                if (curNode.EqName(name)) return curNode;
+                if (curNode.Contains(name)) return curNode;
                 curNode = curNode.Next;
             }
         }
