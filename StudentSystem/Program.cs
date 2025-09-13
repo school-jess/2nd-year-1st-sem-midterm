@@ -10,6 +10,7 @@ public interface IConsoleService
     void WriteLine(string message);
     void Write(string message);
     ConsoleKeyInfo ReadKey();
+    void Clear();
 }
 
 public class ConsoleService : IConsoleService
@@ -18,6 +19,7 @@ public class ConsoleService : IConsoleService
     public void WriteLine(string message) => Console.WriteLine(message);
     public void Write(string message) => Console.Write(message);
     public ConsoleKeyInfo ReadKey() => Console.ReadKey();
+    public void Clear() => Console.Clear();
 }
 
 public interface IStudentRepository
@@ -153,138 +155,197 @@ public class CommandProcessor : ICommandProcessor
 
     public void ProcessCommands()
     {
-        _consoleService.WriteLine(":help to get help");
-        string command;
+        string command = "";
+        string[] options = new string[] { "add", "get", "remove", "update", "print", "exit" };
 
         do
         {
-            _consoleService.Write("> ");
-            command = _consoleService.ReadLine() ?? string.Empty;
+            int highlightedOption = 0;
+            ConsoleKey optionKey = ConsoleKey.A;
+            while (optionKey != ConsoleKey.Enter)
+            {
+                _consoleService.Clear();
+                for (int i = 0; i < options.Length; i++)
+                {
+                    if (i == highlightedOption)
+                    {
+                        _consoleService.WriteLine($"\x1b[1;36m{i + 1}. {options[i]}\x1b[0m");
+                    }
+                    else
+                    {
+                        _consoleService.WriteLine($"{i + 1}. {options[i]}");
+                    }
+                }
+                optionKey = _consoleService.ReadKey().Key;
+                if (optionKey == ConsoleKey.DownArrow && highlightedOption != options.Length - 1)
+                {
+                    highlightedOption++;
+                }
+                if (optionKey == ConsoleKey.UpArrow && highlightedOption != 0)
+                {
+                    highlightedOption--;
+                }
+                if (optionKey == ConsoleKey.Enter)
+                {
+                    switch (highlightedOption)
+                    {
+                        case 0:
+                            command = "add";
+                            break;
+                        case 1:
+                            command = "get";
+                            break;
+                        case 2:
+                            command = "remove";
+                            break;
+                        case 3:
+                            command = "update";
+                            break;
+                        case 4:
+                            command = "print";
+                            break;
+                        case 5:
+                            command = "exit";
+                            break;
+                    }
+                }
+            }
 
             Student? data = null;
             bool stat = false;
-            switch (command.ToLower())
+            bool shouldContinue = false;
+            while (!shouldContinue)
             {
-                case "add":
-                    string name = _inputService.InputString("Name: ");
-                    int yearLevel = _inputService.ConvertToInt("Year Level: ");
-                    string course = _inputService.InputString("Course: ");
-                    string phoneNumber = _inputService.InputString("Phone Number: ");
-                    string email = _inputService.InputString("Email: ");
-                    DateOnly birthday = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
-                    string location;
-                    do
-                    {
-                        location = _inputService.InputString("Location(before or after or specific): ").ToLower();
-                    } while (location != "before" && location != "after" && location != "specific");
+                _consoleService.Clear();
+                switch (command.ToLower())
+                {
+                    case "add":
+                        string name = _inputService.InputString("Name: ");
+                        int yearLevel = _inputService.ConvertToInt("Year Level: ");
+                        string course = _inputService.InputString("Course: ");
+                        string phoneNumber = _inputService.InputString("Phone Number: ");
+                        string email = _inputService.InputString("Email: ");
+                        DateOnly birthday = _inputService.ConvertToDateOnly("Birthday(dd-MM-yyyy): ", "dd-MM-yyyy");
+                        _consoleService.Clear();
+                        string location;
+                        do
+                        {
+                            location = _inputService.InputString("Location(before or after or specific): ").ToLower();
+                        } while (location != "before" && location != "after" && location != "specific");
+                        _consoleService.Clear();
 
-                    data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
-                    if (location == "before")
-                        _studentRepository.Prepend(data);
-                    else if (location == "after")
-                        _studentRepository.Append(data);
-                    else
-                    {
-                        if (_studentRepository.GetHead() == null)
-                            _studentRepository.Insert(data, 0);
+                        data = new Student(0, name, yearLevel, course, phoneNumber, email, birthday);
+                        if (location == "before")
+                            _studentRepository.Prepend(data);
+                        else if (location == "after")
+                            _studentRepository.Append(data);
                         else
                         {
-                            var curNode = _studentRepository.GetHead();
-                            int i = 0;
-                            while (curNode != null)
+                            if (_studentRepository.GetHead() == null)
+                                _studentRepository.Prepend(data);
+                            else
                             {
-                                curNode.Print();
-                                ConsoleKey key;
-                                do
+                                var curNode = _studentRepository.GetHead();
+                                int i = 0;
+                                while (curNode != null)
                                 {
-                                    _consoleService.Write("Insert here?(y or n): ");
-                                    key = _consoleService.ReadKey().Key;
-                                } while (key != ConsoleKey.Y && key != ConsoleKey.N);
-                                _consoleService.WriteLine("");
+                                    curNode.Print();
+                                    ConsoleKey key;
+                                    do
+                                    {
+                                        _consoleService.Write("Insert here? (y or n): ");
+                                        key = _consoleService.ReadKey().Key;
+                                    } while (key != ConsoleKey.Y && key != ConsoleKey.N);
 
-                                if (key == ConsoleKey.Y) break;
-                                i++;
-                                curNode = curNode.Next;
+                                    _consoleService.Clear();
+                                    if (key == ConsoleKey.Y) break;
+                                    i++;
+                                    curNode = curNode.Next;
+                                }
+                                _studentRepository.Insert(data, i);
                             }
-
-                            _studentRepository.Insert(data, i);
                         }
-                    }
+                        _consoleService.Clear();
+                        _consoleService.WriteLine("Successfully added 1 new student");
+                        break;
+                    case "get":
+                        string idName;
+                        do
+                            idName = _inputService.InputString("Search by (id or name): ").ToLower();
+                        while (idName != "id" && idName != "name");
+                        _consoleService.Clear();
 
-                    break;
-                case "get":
-                    string idName;
-                    do
-                        idName = _inputService.InputString("Search by (id or name): ").ToLower();
-                    while (idName != "id" && idName != "name");
+                        if (idName == "id")
+                        {
+                            int idToGet = _inputService.ConvertToInt("Id: ");
+                            _consoleService.Clear();
 
-                    if (idName == "id")
-                    {
-                        int idToGet = _inputService.ConvertToInt("Id: ");
-                        var studentNode = _studentRepository.GetById(idToGet);
-                        if (studentNode == null)
-                            _consoleService.WriteLine($"Unable to find student with id = {idToGet}");
+                            var studentNode = _studentRepository.GetById(idToGet);
+                            if (studentNode == null)
+                                _consoleService.WriteLine($"Unable to find student with id = {idToGet}");
+                            else
+                                studentNode.Print();
+                        }
                         else
-                            studentNode.Print();
-                    }
-                    else
-                    {
-                        string nameToGet = _inputService.InputString("Name: ");
-                        var studentNodes = _studentRepository.GetByName(nameToGet);
-                        if (studentNodes.Count() == 0) _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
-                        else foreach (var studentNode in studentNodes) studentNode.Print();
-                    }
+                        {
+                            string nameToGet = _inputService.InputString("Name: ");
+                            _consoleService.Clear();
+                            var studentNodes = _studentRepository.GetByName(nameToGet);
+                            if (studentNodes.Count() == 0) _consoleService.WriteLine($"Unable to find student with name = {nameToGet}");
+                            else foreach (var studentNode in studentNodes) studentNode.Print();
+                        }
+                        break;
+                    case "remove":
+                        int idToRemove = _inputService.ConvertToInt("Id: ");
+                        stat = _studentRepository.RemoveById(idToRemove);
+                        _consoleService.Clear();
+                        if (stat)
+                            _consoleService.WriteLine($"Successfully deleted student with id = {idToRemove}");
+                        else
+                            _consoleService.WriteLine($"Unable to delete student with id = {idToRemove}");
+                        break;
 
-                    break;
+                    case "update":
+                        int idToUpdate = _inputService.ConvertToInt("Id: ");
+                        int newId = _inputService.ConvertToInt("New Id: ");
+                        string nameToUpdate = _inputService.InputString("Name to Update: ");
+                        int yearLevelToUpdate = _inputService.ConvertToInt("Year Level: ");
+                        string courseToUpdate = _inputService.InputString("Course to Update: ");
+                        string phoneNumberToUpdate = _inputService.InputString("Phone Number to Update: ");
+                        string emailToUpdate = _inputService.InputString("Email to Update: ");
+                        DateOnly birthdayToUpdate =
+                            _inputService.ConvertToDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
+                        _consoleService.Clear();
 
-                case "remove":
-                    int idToRemove = _inputService.ConvertToInt("Id: ");
-                    stat = _studentRepository.RemoveById(idToRemove);
-                    if (stat)
-                        _consoleService.WriteLine($"Successfully deleted student with id = {idToRemove}");
-                    else
-                        _consoleService.WriteLine($"Unable to delete student with id = {idToRemove}");
-                    break;
+                        data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
+                            emailToUpdate, birthdayToUpdate);
 
-                case "update":
-                    int idToUpdate = _inputService.ConvertToInt("Id: ");
-                    int newId = _inputService.ConvertToInt("New Id: ");
-                    string nameToUpdate = _inputService.InputString("Name to Update: ");
-                    int yearLevelToUpdate = _inputService.ConvertToInt("Year Level: ");
-                    string courseToUpdate = _inputService.InputString("Course to Update: ");
-                    string phoneNumberToUpdate = _inputService.InputString("Phone Number to Update: ");
-                    string emailToUpdate = _inputService.InputString("Email to Update: ");
-                    DateOnly birthdayToUpdate =
-                        _inputService.ConvertToDateOnly("Birthday to Update(dd-MM-yyyy): ", "dd-MM-yyyy");
+                        stat = _studentRepository.UpdateNode(idToUpdate, data);
+                        if (stat)
+                            _consoleService.WriteLine($"Successfully updated student with id = {idToUpdate}");
+                        else
+                            _consoleService.WriteLine($"Unable to update student with id = {idToUpdate}");
+                        break;
 
-                    data = new Student(newId, nameToUpdate, yearLevelToUpdate, courseToUpdate, phoneNumberToUpdate,
-                        emailToUpdate, birthdayToUpdate);
-
-                    stat = _studentRepository.UpdateNode(idToUpdate, data);
-                    if (stat)
-                        _consoleService.WriteLine($"Successfully updated student with id = {idToUpdate}");
-                    else
-                        _consoleService.WriteLine($"Unable to update student with id = {idToUpdate}");
-                    break;
-
-                case "print":
-                    _studentRepository.Print();
-                    break;
-
-                case "help":
-                    _consoleService.WriteLine("Help:");
-                    _consoleService.WriteLine("Commands: add, get, remove, update, print, exit");
-                    break;
-
-                case "exit":
-                    break;
-
-                default:
-                    if (!string.IsNullOrWhiteSpace(command))
-                        _consoleService.WriteLine("Unknown command");
-                    break;
+                    case "print":
+                        _studentRepository.Print();
+                        break;
+                    case "exit":
+                        goto exitLabel;
+                }
+                ConsoleKey shouldContinueKey = ConsoleKey.A;
+                do
+                {
+                    _consoleService.Write("Continue? (y or n): ");
+                    shouldContinueKey = _consoleService.ReadKey().Key;
+                } while (shouldContinueKey != ConsoleKey.Y && shouldContinueKey != ConsoleKey.N);
+                if (shouldContinueKey == ConsoleKey.N) shouldContinue = true;
+                _consoleService.WriteLine("");
             }
         } while (command.ToLower() != "exit");
+    exitLabel:
+        _consoleService.Clear();
+        _consoleService.WriteLine("Goodbye!");
     }
 }
 
@@ -423,18 +484,20 @@ class DoublyLinkedList<T> where T : class, IId
             while (curNode != null)
             {
                 curNode.Print();
-
-                ConsoleKey key;
-                do
+                ConsoleKey key = ConsoleKey.A;
+                while (key != ConsoleKey.Y && key != ConsoleKey.N)
                 {
                     Console.Write("Continue? (y or n): ");
                     key = Console.ReadKey().Key;
                     Console.WriteLine();
-                } while (key != ConsoleKey.Y && key != ConsoleKey.N);
+                }
                 if (key == ConsoleKey.N) break;
-
+                if (curNode.Next == null) break;
+                Console.Clear();
                 curNode = curNode.Next;
             }
+            Console.Clear();
+            Console.WriteLine("You have reached the end of the list.");
         }
     }
 
@@ -505,7 +568,7 @@ class DoublyLinkedList<T> where T : class, IId
             {
                 if (curNode.Contains(name))
                 {
-                    nodes = nodes.Append(curNode).ToList();
+                    nodes.Add(curNode);
                 }
                 curNode = curNode.Next;
             }
